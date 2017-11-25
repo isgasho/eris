@@ -260,14 +260,22 @@ func (target *Client) RplWhois(client *Client) {
 }
 
 func (target *Client) RplWhoisUser(client *Client) {
-	if client.flags[SecureConn]: {
-		clientHost := client.hostname
+	var clientHost Name
+
+	if client.flags[SecureConn] {
+		clientHost = client.hostname
 	} else {
-		clientHost := 'SECURED'
+		clientHost = NewName("SECURED")
 	}
-	target.NumericReply(RPL_WHOISUSER,
-		"%s %s %s * :%s", client.Nick(), client.username, clientHost,
-		client.realname)
+
+	target.NumericReply(
+		RPL_WHOISUSER,
+		"%s %s %s * :%s",
+		client.Nick(),
+		client.username,
+		clientHost,
+		client.realname,
+	)
 }
 
 func (target *Client) RplWhoisOperator(client *Client) {

@@ -37,6 +37,7 @@ type Server struct {
 	idle        chan *Client
 	motdFile    string
 	name        Name
+	network     Name
 	description string
 	newConns    chan net.Conn
 	operators   map[Name][]byte
@@ -63,6 +64,7 @@ func NewServer(config *Config) *Server {
 		idle:        make(chan *Client),
 		motdFile:    config.Server.MOTD,
 		name:        NewName(config.Server.Name),
+		network:     NewName(config.Network.Name),
 		description: config.Server.Description,
 		newConns:    make(chan net.Conn),
 		operators:   config.Operators(),
@@ -314,6 +316,7 @@ func (s *Server) Rehash() error {
 
 	s.motdFile = s.config.Server.MOTD
 	s.name = NewName(s.config.Server.Name)
+	s.network = NewName(s.config.Network.Name)
 	s.description = s.config.Server.Description
 	s.operators = s.config.Operators()
 
@@ -322,6 +325,10 @@ func (s *Server) Rehash() error {
 
 func (s *Server) Id() Name {
 	return s.name
+}
+
+func (s *Server) Network() Name {
+	return s.network
 }
 
 func (s *Server) String() string {

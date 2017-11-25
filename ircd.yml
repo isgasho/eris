@@ -1,3 +1,7 @@
+network:
+  # network name
+  name: Local
+
 server:
   # server name
   name: localhost.localdomain

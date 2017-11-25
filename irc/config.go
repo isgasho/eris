@@ -33,6 +33,10 @@ type Config struct {
 	sync.Mutex
 	filename string
 
+	Network struct {
+		Name string
+	}
+
 	Server struct {
 		PassConfig  `yaml:",inline"`
 		Listen      []string
@@ -96,6 +100,10 @@ func LoadConfig(filename string) (config *Config, err error) {
 	}
 
 	config.filename = filename
+
+	if config.Network.Name == "" {
+		return nil, errors.New("Network name missing")
+	}
 
 	if config.Server.Name == "" {
 		return nil, errors.New("Server name missing")

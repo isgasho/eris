@@ -173,8 +173,12 @@ func RplCap(client *Client, subCommand CapSubCommand, arg interface{}) string {
 // numeric replies
 
 func (target *Client) RplWelcome() {
-	target.NumericReply(RPL_WELCOME,
-		":Welcome to the Internet Relay Network %s", target.Id())
+	target.NumericReply(
+		RPL_WELCOME,
+		":Welcome to the %s Internet Relay Network %s",
+		target.server.Network(),
+		target.Id(),
+	)
 }
 
 func (target *Client) RplYourHost() {

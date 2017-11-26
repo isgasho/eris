@@ -44,13 +44,16 @@ type Server struct {
 	accounts    PasswordStore
 	password    []byte
 	signals     chan os.Signal
+	done        chan bool
 	whoWas      *WhoWasList
 	ids         map[string]*Identity
 }
 
 var (
-	SERVER_SIGNALS = []os.Signal{syscall.SIGINT, syscall.SIGHUP,
-		syscall.SIGTERM, syscall.SIGQUIT}
+	SERVER_SIGNALS = []os.Signal{
+		syscall.SIGINT, syscall.SIGHUP,
+		syscall.SIGTERM, syscall.SIGQUIT,
+	}
 )
 
 func NewServer(config *Config) *Server {
@@ -70,6 +73,7 @@ func NewServer(config *Config) *Server {
 		operators:   config.Operators(),
 		accounts:    NewMemoryPasswordStore(config.Accounts(), PasswordStoreOpts{}),
 		signals:     make(chan os.Signal, len(SERVER_SIGNALS)),
+		done:        make(chan bool),
 		whoWas:      NewWhoWasList(100),
 		ids:         make(map[string]*Identity),
 	}
@@ -192,12 +196,17 @@ func (server *Server) Shutdown() {
 }
 
 func (server *Server) Run() {
-	done := false
-	for !done {
+	for {
 		select {
+		case <-server.done:
+			return
 		case <-server.signals:
 			server.Shutdown()
-			done = true
+			// Give at least 1s for clients to see the shutdown
+			go func() {
+				time.Sleep(1 * time.Second)
+				server.done <- true
+			}()
 
 		case conn := <-server.newConns:
 			go NewClient(server, conn)

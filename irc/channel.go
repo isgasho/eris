@@ -155,16 +155,16 @@ func (channel *Channel) Join(client *Client, key Text) {
 		return
 	}
 
-	isInvited := channel.lists[InviteMask].Match(client.UserHost())
+	isInvited := channel.lists[InviteMask].Match(client.UserHost(false))
 	if !isOperator && channel.flags.Has(InviteOnly) && !isInvited {
 		client.ErrInviteOnlyChan(channel)
 		return
 	}
 
-	if channel.lists[BanMask].Match(client.UserHost()) &&
+	if channel.lists[BanMask].Match(client.UserHost(false)) &&
 		!isInvited &&
 		!isOperator &&
-		!channel.lists[ExceptMask].Match(client.UserHost()) {
+		!channel.lists[ExceptMask].Match(client.UserHost(false)) {
 		client.ErrBannedFromChan(channel)
 		return
 	}
@@ -508,7 +508,7 @@ func (channel *Channel) Invite(invitee *Client, inviter *Client) {
 	}
 
 	if channel.flags.Has(InviteOnly) {
-		channel.lists[InviteMask].Add(invitee.UserHost())
+		channel.lists[InviteMask].Add(invitee.UserHost(false))
 	}
 
 	inviter.RplInviting(invitee, channel.name)

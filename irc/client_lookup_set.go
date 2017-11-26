@@ -105,7 +105,7 @@ func (clients *ClientLookupSet) FindAll(userhost Name) *ClientSet {
 
 	var casemappedNickMask string
 	for _, client := range clients.nicks {
-		casemappedNickMask = client.UserHost().String()
+		casemappedNickMask = client.UserHost(false).String()
 		if matcher.Match(casemappedNickMask) {
 			set.Add(client)
 		}
@@ -123,7 +123,7 @@ func (clients *ClientLookupSet) Find(userhost Name) *Client {
 
 	var casemappedNickMask string
 	for _, client := range clients.nicks {
-		casemappedNickMask = client.UserHost().String()
+		casemappedNickMask = client.UserHost(false).String()
 		if matcher.Match(casemappedNickMask) {
 			return client
 		}

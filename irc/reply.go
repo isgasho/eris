@@ -266,10 +266,10 @@ func (target *Client) RplWhois(client *Client) {
 func (target *Client) RplWhoisUser(client *Client) {
 	var clientHost Name
 
-	if client.flags[SecureConn] {
+	if target.flags[Operator] {
 		clientHost = client.hostname
 	} else {
-		clientHost = NewName("SECURED")
+		clientHost = client.hostmask
 	}
 
 	target.NumericReply(
@@ -337,6 +337,14 @@ func (target *Client) RplChannelModeIs(channel *Channel) {
 // <channel> <user> <host> <server> <nick> ( "H" / "G" ) ["*"] [ ( "@" / "+" ) ]
 // :<hopcount> <real name>
 func (target *Client) RplWhoReply(channel *Channel, client *Client) {
+	var clientHost Name
+
+	if target.flags[Operator] {
+		clientHost = client.hostname
+	} else {
+		clientHost = client.hostmask
+	}
+
 	channelName := "*"
 	flags := ""
 
@@ -366,9 +374,18 @@ func (target *Client) RplWhoReply(channel *Channel, client *Client) {
 			}
 		}
 	}
-	target.NumericReply(RPL_WHOREPLY,
-		"%s %s %s %s %s %s :%d %s", channelName, client.username, client.hostname,
-		client.server.name, client.Nick(), flags, client.hops, client.realname)
+	target.NumericReply(
+		RPL_WHOREPLY,
+		"%s %s %s %s %s %s :%d %s",
+		channelName,
+		client.username,
+		clientHost,
+		client.server.name,
+		client.Nick(),
+		flags,
+		client.hops,
+		client.realname,
+	)
 }
 
 // <name> :End of WHO list
@@ -579,9 +596,22 @@ func (target *Client) RplLUserMe() {
 }
 
 func (target *Client) RplWhoWasUser(whoWas *WhoWas) {
-	target.NumericReply(RPL_WHOWASUSER,
+	var whoWasHost Name
+
+	if target.flags[Operator] {
+		whoWasHost = whoWas.hostname
+	} else {
+		whoWasHost = whoWas.hostmask
+	}
+
+	target.NumericReply(
+		RPL_WHOWASUSER,
 		"%s %s %s * :%s",
-		whoWas.nickname, whoWas.username, whoWas.hostname, whoWas.realname)
+		whoWas.nickname,
+		whoWas.username,
+		whoWasHost,
+		whoWas.realname,
+	)
 }
 
 func (target *Client) RplEndOfWhoWas(nickname Name) {

@@ -26,6 +26,7 @@ type Client struct {
 	hasQuit      bool
 	hops         uint
 	hostname     Name
+	hostmask     Name // Cloacked hostname (SHA256)
 	pingTime     time.Time
 	idleTimer    *time.Timer
 	nick         Name
@@ -83,6 +84,7 @@ func (client *Client) readloop() {
 
 	// Set the hostname for this client.
 	client.hostname = AddrLookupHostname(client.socket.conn.RemoteAddr())
+	client.hostmask = NewName(SHA256(client.hostname.String()))
 
 	for err == nil {
 		if line, err = client.socket.Read(); err != nil {
@@ -279,10 +281,13 @@ func (c *Client) ModeString() (str string) {
 	return
 }
 
-func (c *Client) UserHost() Name {
+func (c *Client) UserHost(cloacked bool) Name {
 	username := "*"
 	if c.HasUsername() {
 		username = c.username.String()
+	}
+	if cloacked {
+		return Name(fmt.Sprintf("%s!%s@%s", c.Nick(), username, c.hostmask))
 	}
 	return Name(fmt.Sprintf("%s!%s@%s", c.Nick(), username, c.hostname))
 }
@@ -303,7 +308,7 @@ func (c *Client) Nick() Name {
 }
 
 func (c *Client) Id() Name {
-	return c.UserHost()
+	return c.UserHost(true)
 }
 
 func (c *Client) String() string {

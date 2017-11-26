@@ -17,6 +17,7 @@ type WhoWas struct {
 	nickname Name
 	username Name
 	hostname Name
+	hostmask Name
 	realname Text
 }
 
@@ -33,6 +34,7 @@ func (list *WhoWasList) Append(client *Client) {
 		nickname: client.Nick(),
 		username: client.username,
 		hostname: client.hostname,
+		hostmask: client.hostmask,
 		realname: client.realname,
 	}
 	list.end = (list.end + 1) % len(list.buffer)

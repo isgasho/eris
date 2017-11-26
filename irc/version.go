@@ -1,14 +1,18 @@
 package irc
 
+import (
+	"fmt"
+)
+
 var (
 	//PackageName package name
 	Package = "eris"
 
 	// Version release version
-	Version = "1.6.0"
+	Version = "1.6.1"
 
 	// Build will be overwritten automatically by the build system
-	Build = "-dev"
+	Build = "dev"
 
 	// GitCommit will be overwritten automatically by the build system
 	GitCommit = "HEAD"
@@ -16,5 +20,5 @@ var (
 
 // FullVersion display the full version and build
 func FullVersion() string {
-	return Package + " v" + Version + Build + " (" + GitCommit + ")"
+	return fmt.Sprintf("%s-%s-%s@%s", Package, Version, Build, GitCommit)
 }

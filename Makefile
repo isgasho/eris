@@ -6,7 +6,7 @@ APP=eris
 PACKAGE=irc
 REPO?=prologic/$(APP)
 TAG?=latest
-BUILD?=-dev
+BUILD?=dev
 
 all: dev
 

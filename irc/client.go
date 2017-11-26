@@ -235,6 +235,7 @@ func (client *Client) destroy() {
 	}
 
 	close(client.replies)
+	client.replies = nil
 
 	client.socket.Close()
 
@@ -351,7 +352,9 @@ func (client *Client) ChangeNickname(nickname Name) {
 }
 
 func (client *Client) Reply(reply string) {
-	client.replies <- reply
+	if client.replies != nil {
+		client.replies <- reply
+	}
 }
 
 func (client *Client) Quit(message Text) {

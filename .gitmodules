@@ -43,3 +43,9 @@
 [submodule "vendor/github.com/prometheus/procfs"]
 	path = vendor/github.com/prometheus/procfs
 	url = https://github.com/prometheus/procfs
+[submodule "vendor/github.com/sasha-s/go-deadlock"]
+	path = vendor/github.com/sasha-s/go-deadlock
+	url = https://github.com/sasha-s/go-deadlock
+[submodule "vendor/github.com/petermattis/goid"]
+	path = vendor/github.com/petermattis/goid
+	url = https://github.com/petermattis/goid

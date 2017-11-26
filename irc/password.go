@@ -68,7 +68,7 @@ func (store *MemoryPasswordStore) Verify(username, password string) error {
 	hash, ok := store.Get(username)
 	if !ok {
 		log.Debugf("username %s not found", username)
-		return fmt.Errorf("account not found: %S", username)
+		return fmt.Errorf("account not found: %s", username)
 	}
 
 	return store.hasher.Compare(hash, []byte(password))

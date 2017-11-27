@@ -489,8 +489,13 @@ func (target *Client) RplMOTDEnd() {
 }
 
 func (target *Client) RplList(channel *Channel) {
-	target.NumericReply(RPL_LIST,
-		"%s %d :%s", channel, channel.members.Count(), channel.topic)
+	target.NumericReply(
+		RPL_LIST,
+		"%s %d :%s",
+		channel,
+		channel.members.Count(),
+		channel.topic,
+	)
 }
 
 func (target *Client) RplListEnd(server *Server) {
@@ -504,8 +509,12 @@ func (target *Client) RplNamReply(channel *Channel) {
 }
 
 func (target *Client) RplWhoisChannels(client *Client) {
-	target.MultilineReply(client.WhoisChannelsNames(), RPL_WHOISCHANNELS,
-		"%s :%s", client.Nick())
+	target.MultilineReply(
+		client.WhoisChannelsNames(target),
+		RPL_WHOISCHANNELS,
+		"%s :%s",
+		client.Nick(),
+	)
 }
 
 func (target *Client) RplVersion() {

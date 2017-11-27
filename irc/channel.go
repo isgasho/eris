@@ -374,7 +374,7 @@ func (channel *Channel) applyMode(client *Client, change *ChannelModeChange) boo
 		return channel.applyModeMask(client, change.mode, change.op,
 			NewName(change.arg))
 
-	case InviteOnly, Moderated, NoOutside, OpOnlyTopic, Private, SecureChan:
+	case InviteOnly, Moderated, NoOutside, OpOnlyTopic, Private, Secret, SecureChan:
 		return channel.applyModeFlag(client, change.mode, change.op)
 
 	case Key:

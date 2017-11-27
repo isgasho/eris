@@ -35,9 +35,9 @@ Discussion at:
 * /server irc.mills.io +6697 (*use TLS/SSL*)
 * /join #lobby
 
-Or (*not recommended*)P
+Or (**not recommended**):
 
-* /server irc.mills.io (*default port 6667, non-TLS)
+* /server irc.mills.io (*default port 6667, non-TLS*)
 * /join #lobby
 
 ## Features
@@ -54,6 +54,7 @@ Or (*not recommended*)P
 * Simple IRC operator privileges (*overrides most things*)
 * Secure connection tracking (+z) and SecureOnly user mode (+Z)
 * Secure channels (+Z)
+* Three layers of channel privacy, Public, Private (+p) and Secret (s)
 
 ## Quick Start
 

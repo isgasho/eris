@@ -625,10 +625,14 @@ func (msg *PrivMsgCommand) HandleServer(server *Server) {
 	}
 }
 
-func (client *Client) WhoisChannelsNames() []string {
+func (client *Client) WhoisChannelsNames(target *Client) []string {
 	chstrs := make([]string, client.channels.Count())
 	index := 0
 	client.channels.Range(func(channel *Channel) bool {
+		if !CanSeeChannel(target, channel) {
+			return true
+		}
+
 		switch {
 		case channel.members.Get(client).Has(ChannelOperator):
 			chstrs[index] = "@" + channel.name.String()
@@ -835,7 +839,7 @@ func (msg *ListCommand) HandleServer(server *Server) {
 
 	if len(msg.channels) == 0 {
 		server.channels.Range(func(name Name, channel *Channel) bool {
-			if !client.flags[Operator] && channel.flags.Has(Private) {
+			if !CanSeeChannel(client, channel) {
 				return true
 			}
 			client.RplList(channel)
@@ -844,7 +848,7 @@ func (msg *ListCommand) HandleServer(server *Server) {
 	} else {
 		for _, chname := range msg.channels {
 			channel := server.channels.Get(chname)
-			if channel == nil || (!client.flags[Operator] && channel.flags.Has(Private)) {
+			if channel == nil || !CanSeeChannel(client, channel) {
 				client.ErrNoSuchChannel(chname)
 				continue
 			}

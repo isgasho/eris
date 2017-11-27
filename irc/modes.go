@@ -70,7 +70,6 @@ var (
 )
 
 const (
-	Anonymous       ChannelMode = 'a' // flag
 	BanMask         ChannelMode = 'b' // arg
 	ChannelCreator  ChannelMode = 'O' // flag
 	ChannelOperator ChannelMode = 'o' // arg
@@ -82,8 +81,6 @@ const (
 	NoOutside       ChannelMode = 'n' // flag
 	OpOnlyTopic     ChannelMode = 't' // flag
 	Private         ChannelMode = 'p' // flag
-	Quiet           ChannelMode = 'q' // flag
-	ReOp            ChannelMode = 'r' // flag
 	Secret          ChannelMode = 's' // flag, deprecated
 	UserLimit       ChannelMode = 'l' // flag arg
 	Voice           ChannelMode = 'v' // arg
@@ -93,7 +90,7 @@ const (
 var (
 	SupportedChannelModes = ChannelModes{
 		BanMask, ExceptMask, InviteMask, InviteOnly, Key, NoOutside,
-		OpOnlyTopic, Private, UserLimit, SecureChan,
+		OpOnlyTopic, Private, UserLimit, Secret, SecureChan,
 	}
 )
 

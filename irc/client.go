@@ -222,6 +222,12 @@ func (client *Client) destroy() {
 
 	// clean up server
 
+	if _, ok := client.socket.conn.(*tls.Conn); ok {
+		client.server.metrics.GaugeVec("server", "clients").WithLabelValues("secure").Dec()
+	} else {
+		client.server.metrics.GaugeVec("server", "clients").WithLabelValues("insecure").Dec()
+	}
+
 	client.server.connections.Dec()
 	client.server.clients.Remove(client)
 

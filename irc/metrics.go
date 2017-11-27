@@ -20,6 +20,7 @@ var DefObjectives = map[float64]float64{
 type Metrics struct {
 	namespace string
 	metrics   map[string]prometheus.Metric
+	gaugevecs map[string]*prometheus.GaugeVec
 	sumvecs   map[string]*prometheus.SummaryVec
 }
 
@@ -27,6 +28,7 @@ func NewMetrics(namespace string) *Metrics {
 	return &Metrics{
 		namespace: namespace,
 		metrics:   make(map[string]prometheus.Metric),
+		gaugevecs: make(map[string]*prometheus.GaugeVec),
 		sumvecs:   make(map[string]*prometheus.SummaryVec),
 	}
 }
@@ -101,6 +103,24 @@ func (m *Metrics) NewGaugeFunc(subsystem, name, help string, f func() float64) p
 	return guage
 }
 
+func (m *Metrics) NewGaugeVec(subsystem, name, help string, labels []string) *prometheus.GaugeVec {
+	gauagevec := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: m.namespace,
+			Subsystem: subsystem,
+			Name:      name,
+			Help:      help,
+		},
+		labels,
+	)
+
+	key := fmt.Sprintf("%s_%s", subsystem, name)
+	m.gaugevecs[key] = gauagevec
+	prometheus.MustRegister(gauagevec)
+
+	return gauagevec
+}
+
 func (m *Metrics) NewSummary(subsystem, name, help string) prometheus.Summary {
 	summary := prometheus.NewSummary(
 		prometheus.SummaryOpts{
@@ -146,6 +166,11 @@ func (m *Metrics) Counter(subsystem, name string) prometheus.Counter {
 func (m *Metrics) Gauge(subsystem, name string) prometheus.Gauge {
 	key := fmt.Sprintf("%s_%s", subsystem, name)
 	return m.metrics[key].(prometheus.Gauge)
+}
+
+func (m *Metrics) GaugeVec(subsystem, name string) *prometheus.GaugeVec {
+	key := fmt.Sprintf("%s_%s", subsystem, name)
+	return m.gaugevecs[key]
 }
 
 func (m *Metrics) Summary(subsystem, name string) prometheus.Summary {

@@ -123,13 +123,20 @@ func NewServer(config *Config) *Server {
 		},
 	)
 
-	// server clients gauge
+	// server registered (clients) gauge
 	server.metrics.NewGaugeFunc(
-		"server", "clients",
+		"server", "registered",
 		"Number of registered clients connected",
 		func() float64 {
 			return float64(server.clients.Count())
 		},
+	)
+
+	// server clients gauge (by secure/insecire)
+	server.metrics.NewGaugeVec(
+		"server", "clients",
+		"Number of registered clients connected (by secure/insecure)",
+		[]string{"secure"},
 	)
 
 	// server channels gauge
@@ -216,6 +223,12 @@ func (s *Server) acceptor(listener net.Listener) {
 			continue
 		}
 		log.Debugf("%s accept: %s", s, conn.RemoteAddr())
+
+		if _, ok := conn.(*tls.Conn); ok {
+			s.metrics.GaugeVec("server", "clients").WithLabelValues("secure").Inc()
+		} else {
+			s.metrics.GaugeVec("server", "clients").WithLabelValues("insecure").Inc()
+		}
 
 		s.connections.Inc()
 		s.newConns <- conn

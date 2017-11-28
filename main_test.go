@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 )
 
 var (
-	wg     sync.WaitGroup
+	done   chan bool
 	server *eris.Server
 
 	client  *irc.Connection
@@ -58,6 +57,8 @@ func newClient(nick, user, name string, start bool) *irc.Connection {
 func TestMain(m *testing.M) {
 	flag.Parse()
 
+	done = make(chan bool)
+
 	server = setupServer()
 
 	client = newClient("test", "test", "Test", true)
@@ -79,95 +80,106 @@ func TestMain(m *testing.M) {
 func TestConnection(t *testing.T) {
 	assert := assert.New(t)
 
+	var (
+		expected bool
+		actual   chan bool
+	)
+
+	expected = true
+	actual = make(chan bool)
+
 	client := newClient("connect", "connect", "Connect", false)
 
-	wg.Add(1)
-	timer := time.AfterFunc(1*time.Second, func() {
-		wg.Done()
-		assert.Fail("timeout")
-	})
-
 	client.AddCallback("001", func(e *irc.Event) {
-		timer.Stop()
-		defer wg.Done()
+		defer func() { done <- true }()
 
-		assert.True(true)
+		actual <- true
 	})
 
+	time.AfterFunc(1*time.Second, func() { done <- true })
 	defer client.Quit()
 	go client.Loop()
+	<-done
 
-	wg.Wait()
+	assert.Equal(expected, <-actual)
 }
 
 func TestRplWelcome(t *testing.T) {
 	assert := assert.New(t)
 
+	var (
+		expected string
+		actual   chan string
+	)
+
+	expected = "Welcome to the .* Internet Relay Network .*!.*@.*"
+	actual = make(chan string)
+
 	client := newClient("connect", "connect", "Connect", false)
 
-	wg.Add(1)
-	timer := time.AfterFunc(1*time.Second, func() {
-		wg.Done()
-		assert.Fail("timeout")
-	})
-
 	client.AddCallback("001", func(e *irc.Event) {
-		timer.Stop()
-		defer wg.Done()
+		defer func() { done <- true }()
 
-		assert.Regexp(
-			"Welcome to the .* Internet Relay Network .*!.*@.*$",
-			e.Message(),
-		)
+		actual <- e.Message()
 	})
 
+	time.AfterFunc(1*time.Second, func() { done <- true })
 	defer client.Quit()
 	go client.Loop()
+	<-done
 
-	wg.Wait()
+	assert.Regexp(expected, <-actual)
 }
 
 func TestUser_JOIN(t *testing.T) {
 	assert := assert.New(t)
 
-	wg.Add(1)
-	timer := time.AfterFunc(1*time.Second, func() {
-		wg.Done()
-		assert.Fail("timeout")
-	})
+	var (
+		expected []string
+		actual   chan string
+	)
+
+	expected = []string{"test", "=", "#test", "@test"}
+	actual = make(chan string)
 
 	client.AddCallback("353", func(e *irc.Event) {
-		timer.Stop()
-		defer wg.Done()
+		defer func() { done <- true }()
 
-		assert.Equal(e.Arguments[0], "test")
-		assert.Equal(e.Arguments[1], "=")
-		assert.Equal(e.Arguments[2], "#test")
-		assert.Equal(e.Arguments[3], "@test")
+		for i := range e.Arguments {
+			actual <- e.Arguments[i]
+		}
 	})
 
+	time.AfterFunc(1*time.Second, func() { done <- true })
 	client.Join("#test")
 	client.SendRaw("NAMES #test")
-	wg.Wait()
+	<-done
+
+	for i := range expected {
+		assert.Equal(expected[i], <-actual)
+	}
 }
 
 func TestUser_PRIVMSG(t *testing.T) {
 	assert := assert.New(t)
 
-	wg.Add(1)
-	timer := time.AfterFunc(1*time.Second, func() {
-		wg.Done()
-		assert.Fail("timeout")
-	})
+	var (
+		expected string
+		actual   chan string
+	)
+
+	expected = "Hello World!"
+	actual = make(chan string)
 
 	clients["test1"].AddCallback("PRIVMSG", func(e *irc.Event) {
-		timer.Stop()
-		defer wg.Done()
+		defer func() { done <- true }()
 
-		assert.Equal(e.Message(), "Hello World!")
-		assert.Equal(e.User, "test")
+		actual <- e.Message()
 	})
 
-	client.Privmsg("test1", "Hello World!")
-	wg.Wait()
+	time.AfterFunc(1*time.Second, func() { done <- true })
+	client.Privmsg("test1", expected)
+	<-done
+
+	assert.Equal(expected, <-actual)
 }

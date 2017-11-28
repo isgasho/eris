@@ -77,7 +77,7 @@ func TestConnection(t *testing.T) {
 	})
 }
 
-func TestConnection_RplWelcome(t *testing.T) {
+func TestRplWelcome(t *testing.T) {
 	assert := assert.New(t)
 
 	client.AddCallback("001", func(e *irc.Event) {
@@ -89,7 +89,7 @@ func TestConnection_RplWelcome(t *testing.T) {
 	})
 }
 
-func TestConnection_User_PRIVMSG(t *testing.T) {
+func TestUser_PRIVMSG(t *testing.T) {
 	assert := assert.New(t)
 
 	clients["test1"].AddCallback("PRIVMSG", func(e *irc.Event) {

@@ -13,8 +13,10 @@ import (
 )
 
 var (
-	client *irc.Connection
 	server *eris.Server
+
+	client  *irc.Connection
+	clients map[string]*irc.Connection
 
 	tls = flag.Bool("tls", false, "run tests with TLS")
 )
@@ -34,9 +36,9 @@ func setupServer() *eris.Server {
 	return server
 }
 
-func setupClient() *irc.Connection {
-	client := irc.IRC("test", "test")
-	client.RealName = "Test"
+func newClient(nick, user, name string) *irc.Connection {
+	client := irc.IRC(nick, user)
+	client.RealName = name
 
 	err := client.Connect("localhost:6667")
 	if err != nil {
@@ -52,11 +54,18 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 
 	server = setupServer()
-	client = setupClient()
+
+	client = newClient("test", "test", "Test")
+	clients = make(map[string]*irc.Connection)
+	clients["test1"] = newClient("test1", "test", "Test 1")
+	clients["test2"] = newClient("test2", "test", "Test 2")
 
 	result := m.Run()
 
-	client.Quit()
+	for _, client := range clients {
+		client.Quit()
+	}
+
 	server.Stop()
 
 	os.Exit(result)
@@ -78,4 +87,15 @@ func TestConnection_RplWelcome(t *testing.T) {
 			e.Message(),
 		)
 	})
+}
+
+func TestConnection_User_PRIVMSG(t *testing.T) {
+	assert := assert.New(t)
+
+	clients["test1"].AddCallback("PRIVMSG", func(e *irc.Event) {
+		assert.Equal(e.Message(), "Hello World!")
+		assert.Equal(e.User, "test")
+	})
+
+	client.Privmsg("test1", "Hello World!")
 }

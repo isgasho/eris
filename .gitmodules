@@ -52,3 +52,6 @@
 [submodule "vendor/github.com/thoj/go-ircevent"]
 	path = vendor/github.com/thoj/go-ircevent
 	url = https://github.com/thoj/go-ircevent
+[submodule "vendor/github.com/stretchr/testify"]
+	path = vendor/github.com/stretchr/testify
+	url = https://github.com/stretchr/testify

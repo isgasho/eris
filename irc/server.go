@@ -202,6 +202,10 @@ func (server *Server) Shutdown() {
 	server.Global("shutting down...")
 }
 
+func (server *Server) Stop() {
+	server.done <- true
+}
+
 func (server *Server) Run() {
 	for {
 		select {
@@ -212,7 +216,7 @@ func (server *Server) Run() {
 			// Give at least 1s for clients to see the shutdown
 			go func() {
 				time.Sleep(1 * time.Second)
-				server.done <- true
+				server.Stop()
 			}()
 
 		case conn := <-server.newConns:

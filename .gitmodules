@@ -49,3 +49,6 @@
 [submodule "vendor/github.com/petermattis/goid"]
 	path = vendor/github.com/petermattis/goid
 	url = https://github.com/petermattis/goid
+[submodule "vendor/github.com/thoj/go-ircevent"]
+	path = vendor/github.com/thoj/go-ircevent
+	url = https://github.com/thoj/go-ircevent

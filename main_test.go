@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/thoj/go-ircevent"
 
 	eris "github.com/prologic/eris/irc"
@@ -64,5 +65,17 @@ func TestMain(m *testing.M) {
 func TestConnection(t *testing.T) {
 	client.AddCallback("001", func(e *irc.Event) {
 		client.Quit()
+	})
+}
+
+func TestConnection_RplWelcome(t *testing.T) {
+	assert := assert.New(t)
+
+	client.AddCallback("001", func(e *irc.Event) {
+		defer client.Quit()
+		assert.Regexp(
+			"Welcome to the .* Internet Relay Chat Network$",
+			e.Message(),
+		)
 	})
 }

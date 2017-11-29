@@ -183,3 +183,29 @@ func TestUser_PRIVMSG(t *testing.T) {
 
 	assert.Equal(expected, <-actual)
 }
+
+func TestChannel_PRIVMSG(t *testing.T) {
+	assert := assert.New(t)
+
+	var (
+		expected string
+		actual   chan string
+	)
+
+	expected = "Hello World!"
+	actual = make(chan string)
+
+	clients["test1"].AddCallback("PRIVMSG", func(e *irc.Event) {
+		defer func() { done <- true }()
+
+		actual <- e.Message()
+	})
+
+	time.AfterFunc(1*time.Second, func() { done <- true })
+	client.Join("#test")
+	clients["test1"].Join("#test")
+	client.Privmsg("#test", expected)
+	<-done
+
+	assert.Equal(expected, <-actual)
+}

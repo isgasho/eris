@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
+	"sync"
 	"testing"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/thoj/go-ircevent"
@@ -13,14 +15,17 @@ import (
 	eris "github.com/prologic/eris/irc"
 )
 
+const (
+	TIMEOUT = 3 * time.Second
+)
+
 var (
-	done   chan bool
 	server *eris.Server
 
 	client  *irc.Connection
 	clients map[string]*irc.Connection
 
-	tls = flag.Bool("tls", false, "run tests with TLS")
+	debug = flag.Bool("d", false, "enable debug logging")
 )
 
 func setupServer() *eris.Server {
@@ -57,14 +62,26 @@ func newClient(nick, user, name string, start bool) *irc.Connection {
 func TestMain(m *testing.M) {
 	flag.Parse()
 
-	done = make(chan bool)
+	if *debug {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.WarnLevel)
+	}
 
 	server = setupServer()
 
+	wg := sync.WaitGroup{}
+	wg.Add(3)
+
 	client = newClient("test", "test", "Test", true)
+	client.AddCallback("001", func(e *irc.Event) { wg.Done() })
 	clients = make(map[string]*irc.Connection)
 	clients["test1"] = newClient("test1", "test", "Test 1", true)
+	clients["test1"].AddCallback("001", func(e *irc.Event) { wg.Done() })
 	clients["test2"] = newClient("test2", "test", "Test 2", true)
+	clients["test2"].AddCallback("001", func(e *irc.Event) { wg.Done() })
+
+	wg.Wait()
 
 	result := m.Run()
 
@@ -91,17 +108,18 @@ func TestConnection(t *testing.T) {
 	client := newClient("connect", "connect", "Connect", false)
 
 	client.AddCallback("001", func(e *irc.Event) {
-		defer func() { done <- true }()
-
 		actual <- true
 	})
 
-	time.AfterFunc(1*time.Second, func() { done <- true })
 	defer client.Quit()
 	go client.Loop()
-	<-done
 
-	assert.Equal(expected, <-actual)
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
 }
 
 func TestRplWelcome(t *testing.T) {
@@ -118,17 +136,18 @@ func TestRplWelcome(t *testing.T) {
 	client := newClient("connect", "connect", "Connect", false)
 
 	client.AddCallback("001", func(e *irc.Event) {
-		defer func() { done <- true }()
-
 		actual <- e.Message()
 	})
 
-	time.AfterFunc(1*time.Second, func() { done <- true })
 	defer client.Quit()
 	go client.Loop()
-	<-done
 
-	assert.Regexp(expected, <-actual)
+	select {
+	case res := <-actual:
+		assert.Regexp(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
 }
 
 func TestUser_JOIN(t *testing.T) {
@@ -143,20 +162,52 @@ func TestUser_JOIN(t *testing.T) {
 	actual = make(chan string)
 
 	client.AddCallback("353", func(e *irc.Event) {
-		defer func() { done <- true }()
-
 		for i := range e.Arguments {
 			actual <- e.Arguments[i]
 		}
 	})
 
-	time.AfterFunc(1*time.Second, func() { done <- true })
 	client.Join("#test")
 	client.SendRaw("NAMES #test")
-	<-done
 
 	for i := range expected {
-		assert.Equal(expected[i], <-actual)
+		select {
+		case res := <-actual:
+			assert.Equal(expected[i], res)
+		case <-time.After(TIMEOUT):
+			assert.Fail("timeout")
+		}
+	}
+}
+
+func TestChannel_InviteOnly(t *testing.T) {
+	assert := assert.New(t)
+
+	var (
+		expected bool
+		actual   chan bool
+	)
+
+	expected = true
+	actual = make(chan bool)
+
+	clients["test1"].AddCallback("473", func(e *irc.Event) {
+		actual <- true
+	})
+	clients["test1"].AddCallback("JOIN", func(e *irc.Event) {
+		actual <- false
+	})
+
+	client.Join("#test2")
+	client.Mode("#test2", "+i")
+	time.Sleep(1 * time.Second)
+	clients["test1"].Join("#test2")
+
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
 	}
 }
 
@@ -172,16 +223,17 @@ func TestUser_PRIVMSG(t *testing.T) {
 	actual = make(chan string)
 
 	clients["test1"].AddCallback("PRIVMSG", func(e *irc.Event) {
-		defer func() { done <- true }()
-
 		actual <- e.Message()
 	})
 
-	time.AfterFunc(1*time.Second, func() { done <- true })
 	client.Privmsg("test1", expected)
-	<-done
 
-	assert.Equal(expected, <-actual)
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
 }
 
 func TestChannel_PRIVMSG(t *testing.T) {
@@ -195,17 +247,23 @@ func TestChannel_PRIVMSG(t *testing.T) {
 	expected = "Hello World!"
 	actual = make(chan string)
 
-	clients["test1"].AddCallback("PRIVMSG", func(e *irc.Event) {
-		defer func() { done <- true }()
+	client.AddCallback("JOIN", func(e *irc.Event) {
+		if e.Nick == "test1" && e.Arguments[0] == "#test3" {
+			client.Privmsg("#test3", expected)
+		}
+	})
 
+	clients["test1"].AddCallback("PRIVMSG", func(e *irc.Event) {
 		actual <- e.Message()
 	})
 
-	time.AfterFunc(1*time.Second, func() { done <- true })
-	client.Join("#test")
-	clients["test1"].Join("#test")
-	client.Privmsg("#test", expected)
-	<-done
+	client.Join("#test3")
+	clients["test1"].Join("#test3")
 
-	assert.Equal(expected, <-actual)
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
 }

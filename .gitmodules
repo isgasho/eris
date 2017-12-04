@@ -55,3 +55,9 @@
 [submodule "vendor/github.com/stretchr/testify"]
 	path = vendor/github.com/stretchr/testify
 	url = https://github.com/stretchr/testify
+[submodule "vendor/github.com/renstrom/shortuuid"]
+	path = vendor/github.com/renstrom/shortuuid
+	url = https://github.com/renstrom/shortuuid
+[submodule "vendor/github.com/satori/go.uuid"]
+	path = vendor/github.com/satori/go.uuid
+	url = https://github.com/satori/go.uuid

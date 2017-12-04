@@ -4,12 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"sync"
+	"strings"
 	"testing"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/renstrom/shortuuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/thoj/go-ircevent"
 
@@ -22,9 +23,6 @@ const (
 
 var (
 	server *eris.Server
-
-	client  *irc.Connection
-	clients map[string]*irc.Connection
 
 	debug = flag.Bool("d", false, "enable debug logging")
 )
@@ -44,9 +42,10 @@ func setupServer() *eris.Server {
 	return server
 }
 
-func newClient(nick, user, name string, start bool) *irc.Connection {
-	client := irc.IRC(nick, user)
-	client.RealName = name
+func newClient(start bool) *irc.Connection {
+	uuid := shortuuid.New()
+	client := irc.IRC(uuid, uuid)
+	client.RealName = fmt.Sprintf("Test Client: %s", uuid)
 
 	err := client.Connect("localhost:6667")
 	if err != nil {
@@ -71,25 +70,7 @@ func TestMain(m *testing.M) {
 
 	server = setupServer()
 
-	wg := sync.WaitGroup{}
-	wg.Add(3)
-
-	client = newClient("test", "test", "Test", true)
-	client.AddCallback("001", func(e *irc.Event) { wg.Done() })
-	clients = make(map[string]*irc.Connection)
-	clients["test1"] = newClient("test1", "test", "Test 1", true)
-	clients["test1"].AddCallback("001", func(e *irc.Event) { wg.Done() })
-	clients["test2"] = newClient("test2", "test", "Test 2", true)
-	clients["test2"].AddCallback("001", func(e *irc.Event) { wg.Done() })
-
-	wg.Wait()
-
 	result := m.Run()
-
-	client.Quit()
-	for _, client := range clients {
-		client.Quit()
-	}
 
 	server.Stop()
 
@@ -107,7 +88,7 @@ func TestConnection(t *testing.T) {
 	expected = true
 	actual = make(chan bool)
 
-	client := newClient("connect", "connect", "Connect", false)
+	client := newClient(false)
 
 	client.AddCallback("001", func(e *irc.Event) {
 		actual <- true
@@ -135,7 +116,7 @@ func TestRplWelcome(t *testing.T) {
 	expected = "Welcome to the .* Internet Relay Network .*!.*@.*"
 	actual = make(chan string)
 
-	client := newClient("connect", "connect", "Connect", false)
+	client := newClient(false)
 
 	client.AddCallback("001", func(e *irc.Event) {
 		actual <- e.Message()
@@ -160,17 +141,23 @@ func TestUser_JOIN(t *testing.T) {
 		actual   chan string
 	)
 
-	expected = []string{"test", "=", "#test", "@test"}
 	actual = make(chan string)
 
+	client := newClient(true)
+
+	client.AddCallback("001", func(e *irc.Event) {
+		expected = []string{e.Arguments[0], "=", "#join", fmt.Sprintf("@%s", e.Arguments[0])}
+	})
 	client.AddCallback("353", func(e *irc.Event) {
 		for i := range e.Arguments {
 			actual <- e.Arguments[i]
 		}
 	})
 
-	client.Join("#test")
-	client.SendRaw("NAMES #test")
+	defer client.Quit()
+
+	client.Join("#join")
+	client.SendRaw("NAMES #join")
 
 	for i := range expected {
 		select {
@@ -193,17 +180,30 @@ func TestChannel_InviteOnly(t *testing.T) {
 	expected = true
 	actual = make(chan bool)
 
-	clients["test1"].AddCallback("473", func(e *irc.Event) {
+	client1 := newClient(true)
+	client2 := newClient(true)
+
+	client1.AddCallback("324", func(e *irc.Event) {
+		if strings.Contains(e.Arguments[2], "i") {
+			client2.Join("#inviteonly")
+		} else {
+			client1.Mode("#inviteonly")
+		}
+	})
+
+	client2.AddCallback("473", func(e *irc.Event) {
 		actual <- true
 	})
-	clients["test1"].AddCallback("JOIN", func(e *irc.Event) {
+	client2.AddCallback("JOIN", func(e *irc.Event) {
 		actual <- false
 	})
 
-	client.Join("#test2")
-	client.Mode("#test2", "+i")
-	time.Sleep(1 * time.Second)
-	clients["test1"].Join("#test2")
+	defer client1.Quit()
+	defer client2.Quit()
+
+	client1.Join("#inviteonly")
+	client1.Mode("#inviteonly", "+i")
+	client1.Mode("#inviteonly")
 
 	select {
 	case res := <-actual:
@@ -224,11 +224,26 @@ func TestUser_PRIVMSG(t *testing.T) {
 	expected = "Hello World!"
 	actual = make(chan string)
 
-	clients["test1"].AddCallback("PRIVMSG", func(e *irc.Event) {
+	client1 := newClient(true)
+	client2 := newClient(true)
+
+	client1.AddCallback("001", func(e *irc.Event) {
+		client1.Privmsg(client2.GetNick(), expected)
+
+	})
+	client1.AddCallback("PRIVMSG", func(e *irc.Event) {
 		actual <- e.Message()
 	})
 
-	client.Privmsg("test1", expected)
+	client2.AddCallback("001", func(e *irc.Event) {
+		client2.Privmsg(client1.GetNick(), expected)
+	})
+	client2.AddCallback("PRIVMSG", func(e *irc.Event) {
+		actual <- e.Message()
+	})
+
+	defer client1.Quit()
+	defer client2.Quit()
 
 	select {
 	case res := <-actual:
@@ -249,26 +264,18 @@ func TestChannel_PRIVMSG(t *testing.T) {
 	expected = "Hello World!"
 	actual = make(chan string)
 
-	client1 := newClient("client1", "client", "Client 1", false)
-	client2 := newClient("client2", "client", "Client 2", false)
+	client1 := newClient(true)
+	client2 := newClient(true)
 
 	client1.AddCallback("JOIN", func(e *irc.Event) {
-		channel := e.Arguments[0]
-		if channel == "#test3" {
-			if e.Nick == "client1" {
-				client1.SendRaw("INVITE client2 #test3")
-			} else if e.Nick == "client2" {
-				client1.Privmsg("#test3", expected)
-			} else {
-				assert.Fail(fmt.Sprintf("unexpected user %s joined %s", e.Nick, channel))
-			}
-		} else {
-			assert.Fail(fmt.Sprintf("unexpected channel %s", channel))
-		}
+		client1.Privmsg(e.Arguments[0], expected)
+	})
+	client2.AddCallback("JOIN", func(e *irc.Event) {
+		client2.Privmsg(e.Arguments[0], expected)
 	})
 
-	client2.AddCallback("INVITE", func(e *irc.Event) {
-		client2.Join(e.Arguments[1])
+	client1.AddCallback("PRIVMSG", func(e *irc.Event) {
+		actual <- e.Message()
 	})
 	client2.AddCallback("PRIVMSG", func(e *irc.Event) {
 		actual <- e.Message()
@@ -276,10 +283,9 @@ func TestChannel_PRIVMSG(t *testing.T) {
 
 	defer client1.Quit()
 	defer client2.Quit()
-	go client1.Loop()
-	go client2.Loop()
 
-	client1.Join("#test3")
+	client1.Join("#channelprivmsg")
+	client2.Join("#channelprivmsg")
 
 	select {
 	case res := <-actual:
@@ -300,13 +306,13 @@ func TestChannel_NoExternal(t *testing.T) {
 	expected = true
 	actual = make(chan bool)
 
-	client1 := newClient("client1", "client", "Client 1", false)
-	client2 := newClient("client2", "client", "Client 2", false)
+	client1 := newClient(true)
+	client2 := newClient(true)
 
 	client1.AddCallback("JOIN", func(e *irc.Event) {
 		channel := e.Arguments[0]
 		if channel == "#noexternal" {
-			if e.Nick == "client1" {
+			if e.Nick == client1.GetNick() {
 				client2.Privmsg("#noexternal", "FooBar!")
 			} else {
 				assert.Fail(fmt.Sprintf("unexpected user %s joined %s", e.Nick, channel))
@@ -316,7 +322,7 @@ func TestChannel_NoExternal(t *testing.T) {
 		}
 	})
 
-	client.AddCallback("PRIVMSG", func(e *irc.Event) {
+	client2.AddCallback("PRIVMSG", func(e *irc.Event) {
 		if e.Arguments[0] == "#noexternal" {
 			actual <- false
 		}
@@ -327,8 +333,6 @@ func TestChannel_NoExternal(t *testing.T) {
 
 	defer client1.Quit()
 	defer client2.Quit()
-	go client1.Loop()
-	go client2.Loop()
 
 	client1.Join("#noexternal")
 
@@ -351,14 +355,19 @@ func TestChannel_BadChannelKey(t *testing.T) {
 	expected = true
 	actual = make(chan bool)
 
-	client1 := newClient("client1", "client", "Client 1", false)
-	client2 := newClient("client2", "client", "Client 2", false)
+	client1 := newClient(true)
+	client2 := newClient(true)
 
-	client2.AddCallback("INVITE", func(e *irc.Event) {
-		client2.Join(e.Arguments[1])
+	client1.AddCallback("324", func(e *irc.Event) {
+		if strings.Contains(e.Arguments[2], "k") {
+			client2.Join(e.Arguments[1])
+		} else {
+			client1.Mode("#badchannelkey")
+		}
 	})
+
 	client2.AddCallback("JOIN", func(e *irc.Event) {
-		if e.Nick == "client2" && e.Arguments[0] == "#badchannelkey" {
+		if e.Nick == client2.GetNick() && e.Arguments[0] == "#badchannelkey" {
 			actual <- false
 		}
 	})
@@ -368,13 +377,10 @@ func TestChannel_BadChannelKey(t *testing.T) {
 
 	defer client1.Quit()
 	defer client2.Quit()
-	go client1.Loop()
-	go client2.Loop()
 
-	client.Join("#badchannelkey")
-	client.Mode("#badchannelkey", "+k", "opensesame")
-	time.Sleep(1 * time.Second)
-	client.SendRaw("INVITE client2 #badchannelkey")
+	client1.Join("#badchannelkey")
+	client1.Mode("#badchannelkey", "+k", "opensesame")
+	client1.Mode("#badchannelkey")
 
 	select {
 	case res := <-actual:
@@ -395,14 +401,19 @@ func TestChannel_GoodChannelKey(t *testing.T) {
 	expected = true
 	actual = make(chan bool)
 
-	client1 := newClient("client1", "client", "Client 1", false)
-	client2 := newClient("client2", "client", "Client 2", false)
+	client1 := newClient(true)
+	client2 := newClient(true)
 
-	client2.AddCallback("INVITE", func(e *irc.Event) {
-		client2.SendRawf("JOIN %s :opensesame", e.Arguments[1])
+	client1.AddCallback("324", func(e *irc.Event) {
+		if strings.Contains(e.Arguments[2], "k") {
+			client2.SendRawf("JOIN %s :opensesame", e.Arguments[1])
+		} else {
+			client1.Mode("#goodchannelkey")
+		}
 	})
+
 	client2.AddCallback("JOIN", func(e *irc.Event) {
-		if e.Nick == "client2" && e.Arguments[0] == "#goodchannelkey" {
+		if e.Nick == client2.GetNick() && e.Arguments[0] == "#goodchannelkey" {
 			actual <- true
 		}
 	})
@@ -412,13 +423,10 @@ func TestChannel_GoodChannelKey(t *testing.T) {
 
 	defer client1.Quit()
 	defer client2.Quit()
-	go client1.Loop()
-	go client2.Loop()
 
-	client.Join("#goodchannelkey")
-	client.Mode("#goodchannelkey", "+k", "opensesame")
-	time.Sleep(1 * time.Second)
-	client.SendRaw("INVITE client2 #goodchannelkey")
+	client1.Join("#goodchannelkey")
+	client1.Mode("#goodchannelkey", "+k", "opensesame")
+	client1.Mode("#goodchannelkey")
 
 	select {
 	case res := <-actual:

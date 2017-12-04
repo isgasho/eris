@@ -257,7 +257,6 @@ func TestChannel_PRIVMSG(t *testing.T) {
 
 	client1.AddCallback("JOIN", func(e *irc.Event) {
 		channel := e.Arguments[0]
-		log.Infof("%s has joined %s", e.Nick, channel)
 		if channel == "#test3" {
 			if e.Nick == "client1" {
 				client1.SendRaw("INVITE client2 #test3")
@@ -284,6 +283,57 @@ func TestChannel_PRIVMSG(t *testing.T) {
 	go client2.Loop()
 
 	client1.Join("#test3")
+
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
+}
+
+func TestChannel_NoExternal(t *testing.T) {
+	assert := assert.New(t)
+
+	var (
+		expected bool
+		actual   chan bool
+	)
+
+	expected = true
+	actual = make(chan bool)
+
+	client1 := newClient("client1", "client", "Client 1", false)
+	client2 := newClient("client2", "client", "Client 2", false)
+
+	client1.AddCallback("JOIN", func(e *irc.Event) {
+		channel := e.Arguments[0]
+		if channel == "#noexternal" {
+			if e.Nick == "client1" {
+				client2.Privmsg("#noexternal", "FooBar!")
+			} else {
+				assert.Fail(fmt.Sprintf("unexpected user %s joined %s", e.Nick, channel))
+			}
+		} else {
+			assert.Fail(fmt.Sprintf("unexpected channel %s", channel))
+		}
+	})
+
+	client.AddCallback("PRIVMSG", func(e *irc.Event) {
+		if e.Arguments[0] == "#noexternal" {
+			actual <- false
+		}
+	})
+	client2.AddCallback("404", func(e *irc.Event) {
+		actual <- true
+	})
+
+	defer client1.Quit()
+	defer client2.Quit()
+	go client1.Loop()
+	go client2.Loop()
+
+	client1.Join("#noexternal")
 
 	select {
 	case res := <-actual:

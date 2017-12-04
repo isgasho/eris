@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -248,17 +249,29 @@ func TestChannel_PRIVMSG(t *testing.T) {
 	actual = make(chan string)
 
 	client.AddCallback("JOIN", func(e *irc.Event) {
-		if e.Nick == "test1" && e.Arguments[0] == "#test3" {
-			client.Privmsg("#test3", expected)
+		channel := e.Arguments[0]
+		log.Infof("%s has joined %s", e.Nick, channel)
+		if channel == "#test3" {
+			if e.Nick == "test" {
+				client.SendRaw("INVITE test1 #test3")
+			} else if e.Nick == "test1" {
+				client.Privmsg("#test3", expected)
+			} else {
+				assert.Fail(fmt.Sprintf("unexpected user %s joined %s", e.Nick, channel))
+			}
+		} else {
+			assert.Fail(fmt.Sprintf("unexpected channel %s", channel))
 		}
 	})
 
+	clients["test1"].AddCallback("INVITE", func(e *irc.Event) {
+		clients["test1"].Join(e.Arguments[1])
+	})
 	clients["test1"].AddCallback("PRIVMSG", func(e *irc.Event) {
 		actual <- e.Message()
 	})
 
 	client.Join("#test3")
-	clients["test1"].Join("#test3")
 
 	select {
 	case res := <-actual:

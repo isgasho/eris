@@ -48,6 +48,9 @@ func newClient(nick, user, name string, start bool) *irc.Connection {
 	client := irc.IRC(nick, user)
 	client.RealName = name
 
+	client.VerboseCallbackHandler = *debug
+	client.Debug = *debug
+
 	err := client.Connect("localhost:6667")
 	if err != nil {
 		log.Fatalf("error setting up test client: %s", err)
@@ -86,6 +89,7 @@ func TestMain(m *testing.M) {
 
 	result := m.Run()
 
+	client.Quit()
 	for _, client := range clients {
 		client.Quit()
 	}
@@ -248,14 +252,17 @@ func TestChannel_PRIVMSG(t *testing.T) {
 	expected = "Hello World!"
 	actual = make(chan string)
 
-	client.AddCallback("JOIN", func(e *irc.Event) {
+	client1 := newClient("client1", "client", "Client 1", false)
+	client2 := newClient("client2", "client", "Client 2", false)
+
+	client1.AddCallback("JOIN", func(e *irc.Event) {
 		channel := e.Arguments[0]
 		log.Infof("%s has joined %s", e.Nick, channel)
 		if channel == "#test3" {
-			if e.Nick == "test" {
-				client.SendRaw("INVITE test1 #test3")
-			} else if e.Nick == "test1" {
-				client.Privmsg("#test3", expected)
+			if e.Nick == "client1" {
+				client1.SendRaw("INVITE client2 #test3")
+			} else if e.Nick == "client2" {
+				client1.Privmsg("#test3", expected)
 			} else {
 				assert.Fail(fmt.Sprintf("unexpected user %s joined %s", e.Nick, channel))
 			}
@@ -264,14 +271,19 @@ func TestChannel_PRIVMSG(t *testing.T) {
 		}
 	})
 
-	clients["test1"].AddCallback("INVITE", func(e *irc.Event) {
-		clients["test1"].Join(e.Arguments[1])
+	client2.AddCallback("INVITE", func(e *irc.Event) {
+		client2.Join(e.Arguments[1])
 	})
-	clients["test1"].AddCallback("PRIVMSG", func(e *irc.Event) {
+	client2.AddCallback("PRIVMSG", func(e *irc.Event) {
 		actual <- e.Message()
 	})
 
-	client.Join("#test3")
+	defer client1.Quit()
+	defer client2.Quit()
+	go client1.Loop()
+	go client2.Loop()
+
+	client1.Join("#test3")
 
 	select {
 	case res := <-actual:

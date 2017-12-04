@@ -1,9 +1,7 @@
 package irc
 
 import (
-	//"sync"
-
-	sync "github.com/sasha-s/go-deadlock"
+	"sync"
 )
 
 type WhoWasList struct {

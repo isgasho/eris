@@ -2,9 +2,7 @@ package irc
 
 import (
 	"bytes"
-	//"sync"
-
-	sync "github.com/sasha-s/go-deadlock"
+	"sync"
 )
 
 type SaslState struct {

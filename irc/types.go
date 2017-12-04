@@ -3,9 +3,7 @@ package irc
 import (
 	"fmt"
 	"strings"
-	//"sync"
-
-	sync "github.com/sasha-s/go-deadlock"
+	"sync"
 )
 
 //

@@ -48,9 +48,6 @@ func newClient(nick, user, name string, start bool) *irc.Connection {
 	client := irc.IRC(nick, user)
 	client.RealName = name
 
-	client.VerboseCallbackHandler = *debug
-	client.Debug = *debug
-
 	err := client.Connect("localhost:6667")
 	if err != nil {
 		log.Fatalf("error setting up test client: %s", err)
@@ -334,6 +331,94 @@ func TestChannel_NoExternal(t *testing.T) {
 	go client2.Loop()
 
 	client1.Join("#noexternal")
+
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
+}
+
+func TestChannel_BadChannelKey(t *testing.T) {
+	assert := assert.New(t)
+
+	var (
+		expected bool
+		actual   chan bool
+	)
+
+	expected = true
+	actual = make(chan bool)
+
+	client1 := newClient("client1", "client", "Client 1", false)
+	client2 := newClient("client2", "client", "Client 2", false)
+
+	client2.AddCallback("INVITE", func(e *irc.Event) {
+		client2.Join(e.Arguments[1])
+	})
+	client2.AddCallback("JOIN", func(e *irc.Event) {
+		if e.Nick == "client2" && e.Arguments[0] == "#badchannelkey" {
+			actual <- false
+		}
+	})
+	client2.AddCallback("475", func(e *irc.Event) {
+		actual <- true
+	})
+
+	defer client1.Quit()
+	defer client2.Quit()
+	go client1.Loop()
+	go client2.Loop()
+
+	client.Join("#badchannelkey")
+	client.Mode("#badchannelkey", "+k", "opensesame")
+	time.Sleep(1 * time.Second)
+	client.SendRaw("INVITE client2 #badchannelkey")
+
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
+}
+
+func TestChannel_GoodChannelKey(t *testing.T) {
+	assert := assert.New(t)
+
+	var (
+		expected bool
+		actual   chan bool
+	)
+
+	expected = true
+	actual = make(chan bool)
+
+	client1 := newClient("client1", "client", "Client 1", false)
+	client2 := newClient("client2", "client", "Client 2", false)
+
+	client2.AddCallback("INVITE", func(e *irc.Event) {
+		client2.SendRawf("JOIN %s :opensesame", e.Arguments[1])
+	})
+	client2.AddCallback("JOIN", func(e *irc.Event) {
+		if e.Nick == "client2" && e.Arguments[0] == "#goodchannelkey" {
+			actual <- true
+		}
+	})
+	client2.AddCallback("475", func(e *irc.Event) {
+		actual <- false
+	})
+
+	defer client1.Quit()
+	defer client2.Quit()
+	go client1.Loop()
+	go client2.Loop()
+
+	client.Join("#goodchannelkey")
+	client.Mode("#goodchannelkey", "+k", "opensesame")
+	time.Sleep(1 * time.Second)
+	client.SendRaw("INVITE client2 #goodchannelkey")
 
 	select {
 	case res := <-actual:

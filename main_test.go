@@ -355,6 +355,57 @@ func TestChannel_NoExternal(t *testing.T) {
 	}
 }
 
+func TestChannel_SetTopic_InvalidChannel(t *testing.T) {
+	assert := assert.New(t)
+
+	expected := true
+	actual := make(chan bool)
+
+	client1 := newClient(true)
+	defer client1.Quit()
+
+	client1.AddCallback("403", func(e *irc.Event) {
+		actual <- true
+	})
+
+	client1.SendRaw("TOPIC #invalidchannel :FooBar")
+
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
+}
+
+func TestChannel_SetTopic_NotOnChannel(t *testing.T) {
+	assert := assert.New(t)
+
+	expected := true
+	actual := make(chan bool)
+
+	client1 := newClient(true)
+	client2 := newClient(true)
+	defer client1.Quit()
+	defer client2.Quit()
+
+	client1.AddCallback("442", func(e *irc.Event) {
+		actual <- true
+	})
+	client2.AddCallback("JOIN", func(e *irc.Event) {
+		client1.SendRaw("TOPIC #notonchannel :FooBar")
+	})
+
+	client2.Join("#notonchannel")
+
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
+}
+
 func TestChannel_BadChannelKey(t *testing.T) {
 	assert := assert.New(t)
 

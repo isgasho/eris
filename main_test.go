@@ -42,10 +42,21 @@ func setupServer() *eris.Server {
 	return server
 }
 
+func randomValidName() string {
+	var name eris.Name
+	for {
+		name = eris.NewName(shortuuid.New())
+		if name.IsNickname() {
+			break
+		}
+	}
+	return name.String()
+}
+
 func newClient(start bool) *irc.Connection {
-	uuid := shortuuid.New()
-	client := irc.IRC(uuid, uuid)
-	client.RealName = fmt.Sprintf("Test Client: %s", uuid)
+	name := randomValidName()
+	client := irc.IRC(name, name)
+	client.RealName = fmt.Sprintf("Test Client: %s", name)
 
 	err := client.Connect("localhost:6667")
 	if err != nil {

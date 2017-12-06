@@ -72,8 +72,14 @@ func NewClient(server *Server, conn net.Conn) *Client {
 //
 
 func (client *Client) writeloop() {
-	for reply := range client.replies {
-		client.socket.Write(reply)
+	for {
+		select {
+		case reply, ok := <-client.replies:
+			if !ok || reply == "" || client.socket == nil {
+				return
+			}
+			client.socket.Write(reply)
+		}
 	}
 }
 

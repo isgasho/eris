@@ -35,6 +35,11 @@ func setupServer() *eris.Server {
 	config.Server.Description = "Test"
 	config.Server.Listen = []string{":6667"}
 
+	// SASL
+	config.Account = map[string]*eris.PassConfig{
+		"admin": &eris.PassConfig{"JDJhJDA0JGtUU1JVc1JOUy9DbEh1WEdvYVlMdGVnclp6YnA3NDBOZGY1WUZhdTZtRzVmb1VKdXQ5ckZD"},
+	}
+
 	server := eris.NewServer(config)
 
 	go server.Run()
@@ -100,6 +105,31 @@ func TestConnection(t *testing.T) {
 	actual = make(chan bool)
 
 	client := newClient(false)
+
+	client.AddCallback("001", func(e *irc.Event) {
+		actual <- true
+	})
+
+	defer client.Quit()
+	go client.Loop()
+
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
+}
+
+func TestSASL(t *testing.T) {
+	assert := assert.New(t)
+
+	expected := true
+	actual := make(chan bool)
+
+	client := newClient(false)
+	client.SASLLogin = "admin"
+	client.SASLPassword = "admin"
 
 	client.AddCallback("001", func(e *irc.Event) {
 		actual <- true

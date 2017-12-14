@@ -80,6 +80,9 @@ func (client *Client) writeloop() {
 			}
 			client.socket.Write(reply)
 		}
+		if client.replies == nil {
+			break
+		}
 	}
 }
 

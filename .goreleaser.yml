@@ -1,0 +1,31 @@
+builds:
+  - binary: eris
+    flags: -tags "static_build"
+    ldflags: -w -X mail.Version={{.Version}} -X main.Commit={{.Commit}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - freebsd
+      - linux
+      - windows
+    goarch:
+      - i386
+      - amd64
+      - arm
+      - amd64
+    goarm:
+      - 6
+      - 7
+sign:
+  artifacts: checksum
+archive:
+  wrap_in_directory: true
+  format_overrides:
+    - goos: windows
+      format: zip
+  files:
+    - "*.pem"
+    - "*.yml"
+    - "LICENSE"
+    - "README.md"

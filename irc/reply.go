@@ -266,7 +266,7 @@ func (target *Client) RplWhois(client *Client) {
 func (target *Client) RplWhoisUser(client *Client) {
 	var clientHost Name
 
-	if target.flags[Operator] {
+	if target.flags[Operator] || !client.flags[HostMask] {
 		clientHost = client.hostname
 	} else {
 		clientHost = client.hostmask
@@ -342,7 +342,7 @@ func (target *Client) RplChannelModeIs(channel *Channel) {
 func (target *Client) RplWhoReply(channel *Channel, client *Client) {
 	var clientHost Name
 
-	if target.flags[Operator] {
+	if target.flags[Operator] || !client.flags[HostMask] {
 		clientHost = client.hostname
 	} else {
 		clientHost = client.hostmask

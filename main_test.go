@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"flag"
 	"fmt"
 	"os"
@@ -226,6 +227,82 @@ func TestChannel_InviteOnly(t *testing.T) {
 	client1.Join("#inviteonly")
 	client1.Mode("#inviteonly", "+i")
 	client1.Mode("#inviteonly")
+
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
+}
+
+func TestUser_WithHostMask(t *testing.T) {
+	assert := assert.New(t)
+
+	client1 := newClient(false)
+	client2 := newClient(false)
+
+	expected := fmt.Sprintf("%x", sha256.Sum256([]byte("localhost")))
+	actual := make(chan string)
+
+	client1.AddCallback("001", func(e *irc.Event) {
+		client1.Mode(client1.GetNick(), "+x")
+	})
+
+	client2.AddCallback("001", func(e *irc.Event) {
+		client2.Whois(client1.GetNick())
+	})
+
+	client2.AddCallback("401", func(e *irc.Event) {
+		client2.Whois(client1.GetNick())
+	})
+
+	client2.AddCallback("311", func(e *irc.Event) {
+		actual <- e.Arguments[3]
+	})
+
+	defer client1.Quit()
+	defer client2.Quit()
+	go client1.Loop()
+	go client2.Loop()
+
+	select {
+	case res := <-actual:
+		assert.Equal(expected, res)
+	case <-time.After(TIMEOUT):
+		assert.Fail("timeout")
+	}
+}
+
+func TestUser_WithoutHostMask(t *testing.T) {
+	assert := assert.New(t)
+
+	client1 := newClient(false)
+	client2 := newClient(false)
+
+	expected := "localhost"
+	actual := make(chan string)
+
+	client1.AddCallback("001", func(e *irc.Event) {
+		client1.Mode(client1.GetNick(), "-x")
+	})
+
+	client2.AddCallback("001", func(e *irc.Event) {
+		client2.Whois(client1.GetNick())
+	})
+
+	client2.AddCallback("401", func(e *irc.Event) {
+		client2.Whois(client1.GetNick())
+	})
+
+	client2.AddCallback("311", func(e *irc.Event) {
+		actual <- e.Arguments[3]
+	})
+
+	defer client1.Quit()
+	defer client2.Quit()
+	go client1.Loop()
+	go client2.Loop()
 
 	select {
 	case res := <-actual:

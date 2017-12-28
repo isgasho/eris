@@ -80,7 +80,7 @@ func NewServer(config *Config) *Server {
 
 	log.Debugf("accounts: %v", config.Accounts())
 
-	// TODO: Make this configurabel?
+	// TODO: Make this configureable?
 	server.ids["global"] = NewIdentity(config.Server.Name, "global")
 
 	if config.Server.Password != "" {
@@ -136,7 +136,7 @@ func NewServer(config *Config) *Server {
 		},
 	)
 
-	// server clients gauge (by secure/insecire)
+	// server clients gauge (by secure/insecure)
 	server.metrics.NewGaugeVec(
 		"server", "clients",
 		"Number of registered clients connected (by secure/insecure)",

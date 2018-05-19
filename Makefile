@@ -16,9 +16,10 @@ deps:
 	@go get ./...
 
 build: clean deps
-	@echo " -> Building $(REPO) v$(TAG)-@$(COMMIT)"
+	@echo "github.com/$(REPO)/${PACKAGE}.GitCommit=$(COMMIT)"
+	@echo " -> Building $(REPO) $(TAG)@$(COMMIT)"
 	@go build -tags "netgo static_build" -installsuffix netgo \
-		-ldflags "-w -X github.com/$(REPO)/${PACKAGE}.GitCommit=$(COMMIT)
+		-ldflags "-w -X github.com/$(REPO)/${PACKAGE}.GitCommit=$(COMMIT)"
 	@echo "Built $$(./$(APP) -v)"
 
 image:

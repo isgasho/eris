@@ -23,7 +23,8 @@ pipeline:
 
   notify:
     image: drillster/drone-email
-    host: mail.mills.io
+    host: mail_poste
+    port: 25
     from: drone@mills.io
     skip_verify: true 
     when:

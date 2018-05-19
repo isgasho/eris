@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -14,6 +15,30 @@ const (
 	QUIT_TIMEOUT = time.Minute // how long after idle before a client is kicked
 )
 
+type SyncBool struct {
+	sync.RWMutex
+
+	value bool
+}
+
+func NewSyncBool(value bool) *SyncBool {
+	return &SyncBool{value: value}
+}
+
+func (sb *SyncBool) Get() bool {
+	sb.RLock()
+	defer sb.RUnlock()
+
+	return sb.value
+}
+
+func (sb *SyncBool) Set(value bool) {
+	sb.Lock()
+	defer sb.Unlock()
+
+	sb.value = value
+}
+
 type Client struct {
 	atime        time.Time
 	authorized   bool
@@ -23,7 +48,7 @@ type Client struct {
 	channels     *ChannelSet
 	ctime        time.Time
 	flags        map[UserMode]bool
-	hasQuit      bool
+	hasQuit      *SyncBool
 	hops         uint
 	hostname     Name
 	hostmask     Name // Cloacked hostname (SHA256)
@@ -50,6 +75,7 @@ func NewClient(server *Server, conn net.Conn) *Client {
 		channels:     NewChannelSet(),
 		ctime:        now,
 		flags:        make(map[UserMode]bool),
+		hasQuit:      NewSyncBool(false),
 		sasl:         NewSaslState(),
 		server:       server,
 		socket:       NewSocket(conn),
@@ -364,17 +390,17 @@ func (client *Client) ChangeNickname(nickname Name) {
 }
 
 func (client *Client) Reply(reply string) {
-	if !client.hasQuit {
+	if !client.hasQuit.Get() {
 		client.replies <- reply
 	}
 }
 
 func (client *Client) Quit(message Text) {
-	if client.hasQuit {
+	if client.hasQuit.Get() {
 		return
 	}
 
-	client.hasQuit = true
+	client.hasQuit.Set(true)
 	client.Reply(RplError("quit"))
 	client.server.whoWas.Append(client)
 	friends := client.Friends()

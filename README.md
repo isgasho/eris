@@ -1,4 +1,4 @@
-:set spell eris - IRC Server / Daemon written in Go
+eris - IRC Server / Daemon written in Go
 
 [![Build Status](https://travis-ci.org/prologic/eris.svg)](https://travis-ci.org/prologic/eris)
 [![Go Report Card](https://goreportcard.com/badge/github.com/prologic/eris)](https://goreportcard.com/report/github.com/prologic/eris)

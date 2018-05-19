@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/mmcloughlin/professor"
 	"github.com/prologic/eris/irc"
 )
 
@@ -31,6 +32,10 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	} else {
 		log.SetLevel(log.WarnLevel)
+	}
+
+	if debug {
+		go professor.Launch(":6060")
 	}
 
 	config, err := irc.LoadConfig(configfile)

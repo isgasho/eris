@@ -80,9 +80,6 @@ func (client *Client) writeloop() {
 			}
 			client.socket.Write(reply)
 		}
-		if client.replies == nil {
-			break
-		}
 	}
 }
 
@@ -251,7 +248,6 @@ func (client *Client) destroy() {
 	}
 
 	close(client.replies)
-	client.replies = nil
 
 	client.socket.Close()
 
@@ -368,7 +364,7 @@ func (client *Client) ChangeNickname(nickname Name) {
 }
 
 func (client *Client) Reply(reply string) {
-	if client.replies != nil {
+	if !client.hasQuit {
 		client.replies <- reply
 	}
 }

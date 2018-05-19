@@ -147,6 +147,15 @@ There are a number of supported accompanying services that are being developed a
 
 ## Recommended Clients
 
+### CLI / Terminal
+
+* [irccat](https://github.com/prologic/irccat)
+* [irssi](https://irssi.org/)
+
+### Cloud
+
+* [IRCCloud](https://www.irccloud.com/)
+
 ### Desktop
 
 * [HexChat (Linux)](https://hexchat.github.io/)

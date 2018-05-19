@@ -51,8 +51,8 @@ type Server struct {
 
 var (
 	SERVER_SIGNALS = []os.Signal{
-		syscall.SIGINT, syscall.SIGHUP,
-		syscall.SIGTERM, syscall.SIGQUIT,
+		syscall.SIGINT,
+		syscall.SIGTERM,
 	}
 )
 

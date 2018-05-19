@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// DefObjectives ...
 var DefObjectives = map[float64]float64{
 	0.50: 0.05,
 	0.90: 0.01,
@@ -18,6 +19,7 @@ var DefObjectives = map[float64]float64{
 	0.99: 0.001,
 }
 
+// Metrics ...
 type Metrics struct {
 	sync.RWMutex
 
@@ -27,6 +29,7 @@ type Metrics struct {
 	sumvecs   map[string]*prometheus.SummaryVec
 }
 
+// NewMetrics ...
 func NewMetrics(namespace string) *Metrics {
 	return &Metrics{
 		namespace: namespace,
@@ -36,6 +39,7 @@ func NewMetrics(namespace string) *Metrics {
 	}
 }
 
+// NewCounter ...
 func (m *Metrics) NewCounter(subsystem, name, help string) prometheus.Counter {
 	counter := prometheus.NewCounter(
 		prometheus.CounterOpts{
@@ -55,6 +59,7 @@ func (m *Metrics) NewCounter(subsystem, name, help string) prometheus.Counter {
 	return counter
 }
 
+// NewCounterFunc ...
 func (m *Metrics) NewCounterFunc(subsystem, name, help string, f func() float64) prometheus.CounterFunc {
 	counter := prometheus.NewCounterFunc(
 		prometheus.CounterOpts{
@@ -75,6 +80,7 @@ func (m *Metrics) NewCounterFunc(subsystem, name, help string, f func() float64)
 	return counter
 }
 
+// NewGauge ...
 func (m *Metrics) NewGauge(subsystem, name, help string) prometheus.Gauge {
 	guage := prometheus.NewGauge(
 		prometheus.GaugeOpts{
@@ -94,6 +100,7 @@ func (m *Metrics) NewGauge(subsystem, name, help string) prometheus.Gauge {
 	return guage
 }
 
+// NewGaugeFunc ...
 func (m *Metrics) NewGaugeFunc(subsystem, name, help string, f func() float64) prometheus.GaugeFunc {
 	guage := prometheus.NewGaugeFunc(
 		prometheus.GaugeOpts{
@@ -114,6 +121,7 @@ func (m *Metrics) NewGaugeFunc(subsystem, name, help string, f func() float64) p
 	return guage
 }
 
+// NewGaugeVec ...
 func (m *Metrics) NewGaugeVec(subsystem, name, help string, labels []string) *prometheus.GaugeVec {
 	guagevec := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -134,6 +142,7 @@ func (m *Metrics) NewGaugeVec(subsystem, name, help string, labels []string) *pr
 	return guagevec
 }
 
+// NewSummary ...
 func (m *Metrics) NewSummary(subsystem, name, help string) prometheus.Summary {
 	summary := prometheus.NewSummary(
 		prometheus.SummaryOpts{
@@ -154,6 +163,7 @@ func (m *Metrics) NewSummary(subsystem, name, help string) prometheus.Summary {
 	return summary
 }
 
+// NewSummaryVec ...
 func (m *Metrics) NewSummaryVec(subsystem, name, help string, labels []string) *prometheus.SummaryVec {
 	sumvec := prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
@@ -175,11 +185,13 @@ func (m *Metrics) NewSummaryVec(subsystem, name, help string, labels []string) *
 	return sumvec
 }
 
+// Counter ...
 func (m *Metrics) Counter(subsystem, name string) prometheus.Counter {
 	key := fmt.Sprintf("%s_%s", subsystem, name)
 	return m.metrics[key].(prometheus.Counter)
 }
 
+// Gauge ...
 func (m *Metrics) Gauge(subsystem, name string) prometheus.Gauge {
 	key := fmt.Sprintf("%s_%s", subsystem, name)
 	m.RLock()
@@ -187,6 +199,7 @@ func (m *Metrics) Gauge(subsystem, name string) prometheus.Gauge {
 	return m.metrics[key].(prometheus.Gauge)
 }
 
+// GaugeVec ...
 func (m *Metrics) GaugeVec(subsystem, name string) *prometheus.GaugeVec {
 	key := fmt.Sprintf("%s_%s", subsystem, name)
 	m.RLock()
@@ -194,6 +207,7 @@ func (m *Metrics) GaugeVec(subsystem, name string) *prometheus.GaugeVec {
 	return m.guagevecs[key]
 }
 
+// Summary ...
 func (m *Metrics) Summary(subsystem, name string) prometheus.Summary {
 	key := fmt.Sprintf("%s_%s", subsystem, name)
 	m.RLock()
@@ -201,6 +215,7 @@ func (m *Metrics) Summary(subsystem, name string) prometheus.Summary {
 	return m.metrics[key].(prometheus.Summary)
 }
 
+// SummaryVec ...
 func (m *Metrics) SummaryVec(subsystem, name string) *prometheus.SummaryVec {
 	key := fmt.Sprintf("%s_%s", subsystem, name)
 	m.RLock()
@@ -208,10 +223,12 @@ func (m *Metrics) SummaryVec(subsystem, name string) *prometheus.SummaryVec {
 	return m.sumvecs[key]
 }
 
+// Handler ...
 func (m *Metrics) Handler() http.Handler {
 	return promhttp.Handler()
 }
 
+// Run ...
 func (m *Metrics) Run(addr string) {
 	http.Handle("/", m.Handler())
 	log.Infof("metrics endpoint listening on %s", addr)

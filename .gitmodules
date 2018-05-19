@@ -52,6 +52,9 @@
 [submodule "vendor/github.com/renstrom/shortuuid"]
 	path = vendor/github.com/renstrom/shortuuid
 	url = https://github.com/renstrom/shortuuid
-[submodule "vendor/github.com/satori/go.uuid"]
-	path = vendor/github.com/satori/go.uuid
-	url = https://github.com/satori/go.uuid
+[submodule "vendor/github.com/mmcloughlin/professor"]
+	path = vendor/github.com/mmcloughlin/professor
+	url = https://github.com/mmcloughlin/professor
+[submodule "vendor/github.com/google/uuid"]
+	path = vendor/github.com/google/uuid
+	url = https://github.com/google/uuid

@@ -25,8 +25,14 @@ image:
 	@docker build --build-arg TAG=$(TAG) -t $(REPO):$(TAG) .
 	@echo "Image created: $(REPO):$(TAG)"
 
+profile:
+	@go test -cpuprofile cpu.prof -memprofile mem.prof -v -bench ./...
+
+bench:
+	@go test -v -bench ./...
+
 test:
-	@go test -v -cover -race $(TEST_ARGS)
+	@go test -v -cover -race ./...
 
 clean:
 	@rm -rf $(APP)

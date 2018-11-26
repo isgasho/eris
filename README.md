@@ -170,6 +170,11 @@ There are a number of supported accompanying services that are being developed a
 
 * [Dispatch](https://github.com/khlieng/dispatch) -- TLS, Multiple Servers and Users, Client Certificates
 
+## Related Projects
+
+* [cadmus](https://github.com/prologic/cadmus) -- an IRC Bot written in Go that logs IRC Channels and provides an interface to view and search those logs
+* [soter](https://github.com/prologic/soter) -- an IRC Bot written in Go that protects IRC Channels by persisting channel modes and topics
+
 ## License
 
 eris is licensed under the MIT License.

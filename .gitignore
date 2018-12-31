@@ -3,5 +3,6 @@ bin
 dist
 *.db
 *.pem
+./coverage.txt
 
-eris
+./eris

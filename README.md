@@ -1,10 +1,10 @@
 eris - IRC Server / Daemon written in Go
 
-[![Build Status](https://travis-ci.org/prologic/eris.svg)](https://travis-ci.org/prologic/eris)
-[![Go Report Card](https://goreportcard.com/badge/github.com/prologic/eris)](https://goreportcard.com/report/github.com/prologic/eris)
-[![Coverage](https://coveralls.io/repos/prologic/eris/badge.svg)](https://coveralls.io/r/prologic/eris)
-[![GoDoc](https://godoc.org/github.com/prologic/eris?status.svg)](https://godoc.org/github.com/prologic/eris)
-[![Wiki](https://img.shields.io/badge/docs-wiki-blue.svg)](https://github.com/prologic/eris/wiki)
+[![Build Status](https://cloud.drone.io/api/badges/prologic/eris/status.svg)](https://cloud.drone.io/prologic/eris)
+[![CodeCov](https://codecov.io/gh/prologic/eris/branch/master/graph/badge.svg)](https://codecov.io/gh/prologic/eris)
+[![Go Report Card](https://goreportcard.com/badge/prologic/eris)](https://goreportcard.com/report/prologic/eris)
+[![GoDoc](https://godoc.org/github.com/prologic/eris?status.svg)](https://godoc.org/github.com/prologic/eris) 
+[![Sourcegraph](https://sourcegraph.com/github.com/prologic/eris/-/badge.svg)](https://sourcegraph.com/github.com/prologic/eris?badge)
 
 > This project and repository is based off of [ergonomadic](https://github.com/edmund-huber/ergonomadic)
 > and much of my original contributions were made in my [fork of ergonomadic](https://github.com/prologic/ergonomadic)

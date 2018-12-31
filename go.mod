@@ -1,0 +1,17 @@
+module github.com/prologic/eris
+
+require (
+	github.com/DanielOaks/girc-go v0.0.0-20180430075055-8d136c4f9287
+	github.com/google/uuid v1.1.0 // indirect
+	github.com/goshuirc/e-nfa v0.0.0-20160917075329-7071788e3940 // indirect
+	github.com/imdario/mergo v0.3.6
+	github.com/mmcloughlin/professor v0.0.0-20170922221822-6b97112ab8b3
+	github.com/prometheus/client_golang v0.9.2
+	github.com/renstrom/shortuuid v3.0.0+incompatible
+	github.com/sirupsen/logrus v1.2.0
+	github.com/stretchr/testify v1.2.2
+	github.com/thoj/go-ircevent v0.0.0-20180816043103-14f3614f28c3
+	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
+	golang.org/x/text v0.3.0
+	gopkg.in/yaml.v2 v2.2.2
+)
